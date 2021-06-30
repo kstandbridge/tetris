@@ -4,9 +4,9 @@ This is just an educational project I started to learn game programming. Takes i
 
 ## Backlog
 - [x] feat: console based tetris to work from
-- [ ] feat: win32 window with message loop
-- [ ] feat: fps limitation and sleep
-- [ ] feat: render a square
+- [x] feat: win32 window with message loop
+- [x] feat: fps limitation and sleep
+- [x] feat: render a square
 - [ ] feat: move square with keyboard
 - [ ] feat: move square with controller
 - [ ] feat: split application/dll layer for hot loading
