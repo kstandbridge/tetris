@@ -73,6 +73,19 @@ DrawRectangle(game_offscreen_buffer *Buffer, v2 P, v2 HalfSize, r32 R, r32 G, r3
     }
 }
 
+inline s32
+Rotate(s32 X, s32 Y, s32 R)
+{
+    switch(R % 4)
+    {
+        case 0: return Y * 4 + X;        // 0   degrees
+        case 1: return 12 + Y - (X * 4); // 90  degrees
+        case 2: return 15 - (Y * 4) - X; // 180 degrees
+        case 3: return 3 - Y + (X * 4);  // 270 degrees
+    }
+    return 0;
+}
+
 void
 GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
@@ -135,6 +148,11 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                 GameState->Piece = (GameState->Piece + 1) % ArrayCount(Tetrominoes);
             }
             
+            if(Controller->ActionDown.EndedDown && Controller->ActionDown.HalfTransitionCount == 1)
+            {
+                GameState->Rotation++;
+            }
+            
             r32 Speed = 100.0f;
             GameState->P += ddP*Input->dtForFrame*Speed;
         }
@@ -155,13 +173,16 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             v2 P = InputP - V2(HalfSize, HalfSize)*3;
             r32 OriginalX = P.X;
             r32 OriginalY = P.Y;
-            r32 BlockOffsetX = HalfSize*2.0f + 0.2f;
-            for(s32 Index = 0; Index < 4; ++Index)
+            r32 BlockOffset = HalfSize*2.0f + 0.2f;
+            
+            for(s32 Y = 0; Y < 4; ++Y)
             {
-                char *At = Tetrominoes[Piece][Index];
-                while(*At)
+                for(s32 X = 0; X < 4; ++X)
                 {
-                    if(*At++ == '0')
+                    s32 Index = Rotate(X, Y, GameState->Rotation);
+                    
+                    char *At = Tetrominoes[Piece] + Index;
+                    if(*At == '0')
                     {
                         DrawRectangle(Buffer, P, V2(HalfSize, HalfSize), 0.0f, 0.0f, 0.0f);
                     }
@@ -169,10 +190,10 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                     {
                         DrawRectangle(Buffer, P, V2(HalfSize, HalfSize), 1.0f, 1.0f, 1.0f);
                     }
-                    P.X += BlockOffsetX;
+                    P.X += BlockOffset;
                 }
                 P.X = OriginalX;
-                P.Y += BlockOffsetX;
+                P.Y += BlockOffset;
             }
         }
     }

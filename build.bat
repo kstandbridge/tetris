@@ -46,7 +46,7 @@ if %hours% lss 0 set /a hours = 24%hours%
 if 1%ms% lss 100 set ms=0%ms%
 
 set /a totalsecs = %hours%*3600 + %mins%*60 + %secs%
-echo Build Duration : %mins%:%secs%.%ms% (%totalsecs%.%ms%s total)
+echo Successful build in %totalsecs%.%ms% seconds
 
 del /q *.obj
 del lock.tmp
