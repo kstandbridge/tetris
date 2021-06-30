@@ -39,14 +39,15 @@ PushSize_(memory_arena *Arena, memory_index Size)
 
 struct game_state
 {
-    v2 P;
+    s32 X;
+    s32 Y;
     s32 Piece;
     s32 Rotation;
     
     s32 *Board;
 };
 
-char *Tetrominoes[] =
+global_variable char *Tetrominoes[] =
 {
     "..0...0...0...0.",
     "..0..00...0.....",

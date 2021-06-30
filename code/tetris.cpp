@@ -73,8 +73,8 @@ DrawRectangle(game_offscreen_buffer *Buffer, v2 P, v2 HalfSize, r32 R, r32 G, r3
     }
 }
 
-inline s32
-Rotate(s32 X, s32 Y, s32 R)
+internal s32
+RotateTetromino(s32 X, s32 Y, s32 R)
 {
     switch(R % 4)
     {
@@ -84,6 +84,33 @@ Rotate(s32 X, s32 Y, s32 R)
         case 3: return 3 - Y + (X * 4);  // 270 degrees
     }
     return 0;
+}
+
+internal b32
+ValidMove(s32 *Board, s32 Tetromino, s32 Rotation, s32 TestX, s32 TestY)
+{
+    for(s32 X = 0; X < 4; ++X)
+    {
+        for(s32 Y = 0; Y < 4; ++Y)
+        {
+            s32 PieceIndex = RotateTetromino(X, Y, Rotation);
+            s32 FieldIndex = (TestY + Y) * TILES_X + (TestX + X);
+            
+            if(TestX + X >= 0 && TestX + X < TILES_X)
+            {
+                if(TestY + Y >= 0 && TestY + Y < TILES_Y)
+                {
+                    if(Tetrominoes[Tetromino][PieceIndex] == '0' && Board[FieldIndex] != 0)
+                    {
+                        // NOTE(kstandbridge): Fail on first hit
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    
+    return true;
 }
 
 void
@@ -105,8 +132,25 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
         if (!Memory->IsInitialized)
         {
             Memory->IsInitialized = true;
-            GameState->P = V2(0, 0);
+            GameState->X = TILES_X/2;
+            GameState->Y = 1;
+            GameState->Rotation = 0;
             GameState->Board = PushArray(&MemoryArena, TILES_Y*TILES_X, s32);
+            for(s32 Y = 0; Y < TILES_Y; ++Y)
+            {
+                for(s32 X = 0; X < TILES_X; ++X)
+                {
+                    if(X == 0 || X == TILES_X - 1 || Y == TILES_Y - 1)
+                    {
+                        // NOTE(kstandbridge): Wall
+                        GameState->Board[Y * TILES_X + X] = 1;
+                    }
+                    else
+                    {
+                        GameState->Board[Y * TILES_X + X] = 0;
+                    }
+                }
+            }
         }
     }
     
@@ -119,32 +163,35 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             game_controller_input *Controller = GetController(Input, ControllerIndex);
             
             //entity ControllingEntity = GetHighEntity(GameState, LowIndex);
-            v2 ddP = {};
+            s32 MoveX = 0;
+            s32 MoveY = 0;
+            s32 Rotation = 0;
             
             if (Controller->IsAnalog)
             {
                 // NOTE(kstandbridge): Use analog movement tuning
-                ddP = v2{ Controller->StickAverageX, -Controller->StickAverageY };
+                // TODO(kstandbridge): Analog movement
+                //ddP = v2{ Controller->StickAverageX, -Controller->StickAverageY };
             }
             else
             {
                 // NOTE(kstandbridge): Use digital movement tuning
                 
-                if(Controller->MoveUp.EndedDown)
+                if(Controller->MoveUp.EndedDown && Controller->MoveUp.HalfTransitionCount == 1)
                 {
-                    ddP.Y = -1.0f;
+                    MoveY = -1;
                 }
-                if(Controller->MoveDown.EndedDown)
+                if(Controller->MoveDown.EndedDown && Controller->MoveDown.HalfTransitionCount == 1)
                 {
-                    ddP.Y = 1.0f;
+                    MoveY = +1;
                 }
-                if(Controller->MoveLeft.EndedDown)
+                if(Controller->MoveLeft.EndedDown && Controller->MoveLeft.HalfTransitionCount == 1)
                 {
-                    ddP.X = -1.0f;
+                    MoveX = -1;
                 }
-                if(Controller->MoveRight.EndedDown)
+                if(Controller->MoveRight.EndedDown && Controller->MoveRight.HalfTransitionCount == 1)
                 {
-                    ddP.X = 1.0f;
+                    MoveX = 1;
                 }
             }
             
@@ -155,11 +202,20 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             
             if(Controller->ActionDown.EndedDown && Controller->ActionDown.HalfTransitionCount == 1)
             {
-                GameState->Rotation++;
+                Rotation = 1;
             }
             
-            r32 Speed = 100.0f;
-            GameState->P += ddP*Input->dtForFrame*Speed;
+            if(ValidMove(GameState->Board, GameState->Piece, GameState->Rotation + Rotation, GameState->X + MoveX, GameState->Y + MoveY))
+            {
+                GameState->Rotation += Rotation;
+                GameState->X += MoveX;
+                GameState->Y += MoveY;
+            }
+            else
+            {
+                // TODO(kstandbridge): Invalid move sound
+            }
+            
         }
     }
     
@@ -178,8 +234,9 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             v2 TileHalfSize = V2(TileSize/2, TileSize/2);
             r32 BlockOffset = TileSize + TilePadding;
             
-            P.X -= ((TileSize) + TilePadding)*(TILES_X - 1)/2;
-            P.Y -= ((TileSize) + TilePadding)*(TILES_Y - 1)/2;
+            r32 TotalSize = (TileSize) + TilePadding;
+            P.X -= (TotalSize)*(TILES_X - 1)/2;
+            P.Y -= (TotalSize)*(TILES_Y - 1)/2;
             r32 OriginalX = P.X;
             
             for(s32 Y = 0; Y < TILES_Y; ++Y)
@@ -190,11 +247,42 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                     {
                         DrawRectangle(Buffer, P, TileHalfSize, 1.0f, 1.0f, 1.0f);
                     }
+                    else
+                    {
+                        DrawRectangle(Buffer, P, TileHalfSize, 0.0f, 0.0f, 0.0f);
+                    }
                     P.X += BlockOffset;
                 }
                 P.Y += BlockOffset;
                 P.X = OriginalX;
                 
+            }
+            
+            
+            // NOTE(kstandbridge): Draw current piece
+            
+            P = V2(0, 0);
+            P.X -= (TotalSize)*(TILES_X - 1)/2;
+            P.Y -= (TotalSize)*(TILES_Y - 1)/2;
+            P.X += TotalSize*GameState->X;
+            P.Y += TotalSize*GameState->Y;
+            OriginalX = P.X;
+            for(s32 Y = 0; Y < 4; ++Y)
+            {
+                for(s32 X = 0; X < 4; ++X)
+                {
+                    s32 Index = RotateTetromino(X, Y, GameState->Rotation);
+                    
+                    char *At = Tetrominoes[GameState->Piece] + Index;
+                    if(*At == '0')
+                    {
+                        DrawRectangle(Buffer, P, TileHalfSize, 0.0f, 0.0f, 0.5f);
+                    }
+                    
+                    P.X += TotalSize;
+                }
+                P.Y += TotalSize;
+                P.X = OriginalX;
             }
         }
         
