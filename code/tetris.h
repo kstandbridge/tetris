@@ -36,12 +36,14 @@ PushSize_(memory_arena *Arena, memory_index Size)
 #define TILES_X 12
 #define TILES_Y 18
 #define DROP_TIME 20
+#define LINE_COUNT 4
 
 enum board_type
 {
     BoardType_Clear,
     BoardType_Wall,
-    BoardType_Locked
+    BoardType_Locked,
+    BoardType_Line,
 };
 
 struct game_state
@@ -51,6 +53,9 @@ struct game_state
     s32 Piece;
     s32 Rotation;
     s32 DropCounter;
+    
+    s32 *Lines;
+    s32 NextLine;
     
     board_type *Board;
 };

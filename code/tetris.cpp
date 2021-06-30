@@ -136,6 +136,8 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             GameState->Y = 1;
             GameState->Rotation = 0;
             GameState->Piece = 0;
+            GameState->Lines = PushArray(&MemoryArena, LINE_COUNT, s32);
+            GameState->NextLine = 0;
             GameState->Board = PushArray(&MemoryArena, TILES_Y*TILES_X, board_type);
             for(s32 Y = 0; Y < TILES_Y; ++Y)
             {
@@ -222,6 +224,24 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
     GameState->DropCounter++;
     if(GameState->DropCounter > DROP_TIME)
     {
+        // NOTE(kstandbridge): Clear any lines
+        for(s32 Index = 0; Index < LINE_COUNT; ++Index)
+        {
+            if(GameState->Lines[Index] != 0)
+            {
+                for(s32 X = 1; X < TILES_X - 1; ++X)
+                {
+                    for(s32 Y = GameState->Lines[Index]; Y > 0; Y--)
+                    {
+                        GameState->Board[Y * TILES_X + X] = GameState->Board[(Y - 1) * TILES_X + X];
+                    }
+                    GameState->Board[X] = BoardType_Clear;
+                }
+                
+                GameState->Lines[Index] = 0;
+            }
+        }
+        
         GameState->DropCounter = 0;
         if(ValidMove(GameState->Board, GameState->Piece, GameState->Rotation, GameState->X, GameState->Y + 1))
         {
@@ -237,6 +257,30 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                     if(Tetrominoes[GameState->Piece][RotateTetromino(X, Y, GameState->Rotation)] == '0')
                     {
                         GameState->Board[(GameState->Y + Y) * TILES_X + (GameState->X + X)] = BoardType_Locked;
+                    }
+                }
+            }
+            
+            // NOTE(kstandbridge): Check for line
+            for(s32 Y = 0; Y < 4; ++Y)
+            {
+                if(GameState->Y + Y < TILES_Y - 1)
+                {
+                    b32 Line = true;
+                    for(s32 X = 1; X < TILES_X - 1; ++X)
+                    {
+                        Line &= (GameState->Board[(GameState->Y + Y) * TILES_X + X]) != 0;
+                    }
+                    
+                    if(Line)
+                    {
+                        for(s32 X = 1; X < TILES_X - 1; ++X)
+                        {
+                            GameState->Board[(GameState->Y + Y) * TILES_X + X] = BoardType_Line;
+                        }
+                        GameState->DropCounter = -DROP_TIME;
+                        GameState->Lines[GameState->NextLine++] = GameState->Y + Y;
+                        if(GameState->NextLine >= LINE_COUNT) GameState->NextLine = 0;
                     }
                 }
             }
@@ -300,6 +344,11 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                             DrawRectangle(Buffer, P, TileHalfSize, 0.5f, 0.5f, 0.5f);
                         } break;
                         
+                        case BoardType_Line:
+                        {
+                            DrawRectangle(Buffer, P, TileHalfSize, 0.0f, 1.0f, 0.0f);
+                        } break;
+                        
                         InvalidDefaultCase;
                     }
                     
@@ -337,36 +386,5 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                 P.X = OriginalX;
             }
         }
-        
-#if 0        
-        // NOTE(kstandbridge): Draw tetromino
-        r32 HalfSize = 2.5f;
-        v2 InputP = GameState->P;
-        s32 Piece = GameState->Piece;
-        {
-            v2 P = InputP - V2(HalfSize, HalfSize)*3;
-            r32 OriginalX = P.X;
-            r32 OriginalY = P.Y;
-            r32 BlockOffset = HalfSize*2.0f + 0.2f;
-            
-            for(s32 Y = 0; Y < 4; ++Y)
-            {
-                for(s32 X = 0; X < 4; ++X)
-                {
-                    s32 Index = Rotate(X, Y, GameState->Rotation);
-                    
-                    char *At = Tetrominoes[Piece] + Index;
-                    if(*At == '0')
-                    {
-                        DrawRectangle(Buffer, P, V2(HalfSize, HalfSize), 0.0f, 0.0f, 0.0f);
-                    }
-                    P.X += BlockOffset;
-                }
-                P.X = OriginalX;
-                P.Y += BlockOffset;
-            }
-        }
-#endif
-        
     }
 }

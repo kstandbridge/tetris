@@ -19,8 +19,9 @@ This is just an educational project I started to learn game programming. Takes i
 - [x] feat: force tetromino to drop
 - [x] feat: lock tetromino when reach end of screen and spawn next
 - [x] feat: hit game over when no space for next tetromino
-- [ ] feat: detect and display a valid line created with tetrominoes
-- [ ] feat: clear detected lines and drop whole stack
+- [x] feat: detect and display a valid line created with tetrominoes
+- [x] feat: clear detected lines and drop whole stack
+- [ ] feat: randomize next tetromino
 - [ ] feat: create and display scoring system
 - [ ] feat: speed up game based on pieces spawned
 - [ ] feat: preview next tetromino
