@@ -35,4 +35,5 @@ PushSize_(memory_arena *Arena, memory_index Size)
 
 struct game_state
 {
+    v2 P;
 };

@@ -90,7 +90,6 @@ DrawRectangle(game_offscreen_buffer *Buffer, v2 vMin, v2 vMax, r32 R, r32 G, r32
         Row += Buffer->Pitch;
     }
 }
-
 void
 GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
@@ -100,10 +99,69 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
     
     game_state *GameState = (game_state *)Memory->PermanentStorage;
     
-    if (!Memory->IsInitialized)
-    {
-        
+    //////////////////////
+    // NOTE(kstandbridge): Initalize game
+    {    
+        if (!Memory->IsInitialized)
+        {
+            Memory->IsInitialized = true;
+            GameState->P = V2(100, 100);
+        }
     }
     
-    DrawRectangle(Buffer, V2(10, 10), V2(100, 100), 64, 0, 64);
+    
+    //////////////////////
+    // NOTE(kstandbridge): Handle input
+    {    
+        for (s32 ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
+        {
+            game_controller_input *Controller = GetController(Input, ControllerIndex);
+            
+            //entity ControllingEntity = GetHighEntity(GameState, LowIndex);
+            v2 ddP = {};
+            
+            if (Controller->IsAnalog)
+            {
+                // NOTE(kstandbridge): Use analog movement tuning
+                ddP = v2{ Controller->StickAverageX, -Controller->StickAverageY };
+            }
+            else
+            {
+                // NOTE(kstandbridge): Use digital movement tuning
+                
+                if(Controller->MoveUp.EndedDown)
+                {
+                    ddP.Y = -1.0f;
+                }
+                if(Controller->MoveDown.EndedDown)
+                {
+                    ddP.Y = 1.0f;
+                }
+                if(Controller->MoveLeft.EndedDown)
+                {
+                    ddP.X = -1.0f;
+                }
+                if(Controller->MoveRight.EndedDown)
+                {
+                    ddP.X = 1.0f;
+                }
+            }
+            
+            if(Controller->ActionUp.EndedDown)
+            {
+                //ControllingEntity.High->dZ = 3.0f;
+            }
+            
+            GameState->P += ddP;
+        }
+    }
+    
+    //////////////////////
+    // NOTE(kstandbridge): Render
+    {
+        DrawRectangle(Buffer, V2(0, 0), V2(Buffer->Width, Buffer->Height), 128, 0, 128);
+        
+        DrawRectangle(Buffer, GameState->P, GameState->P + V2(100, 100), 64, 0, 64);
+    }
+    
 }

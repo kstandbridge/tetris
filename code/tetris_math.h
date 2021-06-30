@@ -21,6 +21,18 @@ V2(r32 X, r32 Y)
     return Result;
 }
 
+inline v2
+V2(s32 X, s32 Y)
+{
+    v2 Result;
+    
+    Result.X = (r32)X;
+    Result.Y = (r32)Y;
+    
+    return Result;
+}
+
+
 inline v2 
 operator*(r32 A, v2 B)
 {

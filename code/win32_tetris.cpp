@@ -283,7 +283,7 @@ Win32UnloadGameCode(win32_game_code *GameCode)
 }
 
 internal void
-Win32LoadXInput(void)
+Win32LoadXInput()
 {
     // TODO(kstandbridge): Test this on Windows 8
     HMODULE XInputLibrary = LoadLibraryA("xinput1_4.dll");
@@ -768,7 +768,7 @@ Win32PlayBackInput(win32_state *Win32State, game_input *NewInput)
 }
 
 internal void
-Win32ProcessPendingMessages(win32_state *Win32State, game_controller_input *KeyboardController)
+Win32ProcessPendingMessages(win32_state *Win32State, game_memory *GameMemory, game_controller_input *KeyboardController)
 {
     MSG Message;
     while (PeekMessageA(&Message, 0, 0, 0, PM_REMOVE))
@@ -844,6 +844,10 @@ Win32ProcessPendingMessages(win32_state *Win32State, game_controller_input *Keyb
                         Win32ProcessKeyboardMessage(&KeyboardController->Start, IsDown);
                     }
 #if TETRIS_INTERNAL
+                    else if (VKCode == VK_F5)
+                    {
+                        GameMemory->IsInitialized = false;
+                    }
                     else if (VKCode == 'P')
                     {
                         if (IsDown)
@@ -1242,7 +1246,7 @@ WinMain(HINSTANCE Instance,
 						NewKeyboardController->Buttons[ButtonIndex].EndedDown = OldKeyboardController->Buttons[ButtonIndex].EndedDown;
 					}
                     
-					Win32ProcessPendingMessages(&Win32State, NewKeyboardController);
+					Win32ProcessPendingMessages(&Win32State, &GameMemory, NewKeyboardController);
                     
 					if (!GlobalPause)
 					{

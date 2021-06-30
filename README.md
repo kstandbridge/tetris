@@ -7,11 +7,10 @@ This is just an educational project I started to learn game programming. Takes i
 - [x] feat: win32 window with message loop
 - [x] feat: fps limitation and sleep
 - [x] feat: render a square
-- [ ] feat: move square with keyboard
-- [ ] feat: move square with controller
-- [ ] feat: split application/dll layer for hot loading
-- [ ] feat: global pause
-- [ ] feat: recorded game loop and playback
+- [x] feat: move square with keyboard
+- [x] feat: move square with controller
+- [x] feat: global pause
+- [x] feat: recorded game loop and playback
 - [ ] feat: render tetromino
 - [ ] feat: position tetromino
 - [ ] feat: rotate tetromino
