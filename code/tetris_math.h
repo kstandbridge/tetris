@@ -102,6 +102,14 @@ operator-(v2 A, v2 B)
     return Result;
 }
 
+inline v2 &
+operator-=(v2 &A, v2 B)
+{
+    A = A - B;
+    
+    return A;
+}
+
 inline r32
 Square(r32 A)
 {
@@ -180,6 +188,18 @@ IsInRectangle(rectangle2 Rectangle, v2 Test)
                   (Test.Y >= Rectangle.Min.Y) &&
                   (Test.X < Rectangle.Max.X) &&
                   (Test.Y < Rectangle.Max.Y));
+    
+    return Result;
+}
+
+inline s32
+Clamp(s32 Min, s32 Value, s32 Max)
+{
+    s32 Result;
+    
+    if(Value < Min) Result = Min;
+    else if(Value > Max) Result = Max;
+    else Result = Value;
     
     return Result;
 }

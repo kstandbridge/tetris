@@ -11,7 +11,7 @@ This is just an educational project I started to learn game programming. Takes i
 - [x] feat: move square with controller
 - [x] feat: global pause
 - [x] feat: recorded game loop and playback
-- [ ] feat: render tetromino
+- [x] feat: render tetromino
 - [ ] feat: position tetromino
 - [ ] feat: rotate tetromino
 - [ ] feat: tetris play grid
