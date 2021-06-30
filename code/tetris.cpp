@@ -45,7 +45,7 @@ DrawRectangle(game_offscreen_buffer *Buffer, v2 P, v2 HalfSize, r32 R, r32 G, r3
     HalfSize *= (Buffer->Width/1.77f)*GlobalScale;
     P *= (Buffer->Width/1.77f)*GlobalScale;
     
-    P += V2(Buffer->Width*0.5f,Buffer->Height*0.5f);
+    P += V2(Buffer->Width*0.5f,Buffer->Height*0.5f); 
     
     s32 MinX = Clamp(0, RoundReal32ToInt32(P.X - HalfSize.X), Buffer->Width);
     s32 MinY = Clamp(0, RoundReal32ToInt32(P.Y - HalfSize.Y), Buffer->Height);
@@ -94,6 +94,10 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
     
     game_state *GameState = (game_state *)Memory->PermanentStorage;
+    memory_arena MemoryArena;
+    InitializeArena(&MemoryArena, 
+                    Memory->PermanentStorageSize - sizeof(game_state),
+                    (u8 *)Memory->PermanentStorage + sizeof(game_state));
     
     //////////////////////
     // NOTE(kstandbridge): Initalize game
@@ -102,6 +106,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
         {
             Memory->IsInitialized = true;
             GameState->P = V2(0, 0);
+            GameState->Board = PushArray(&MemoryArena, TILES_Y*TILES_X, s32);
         }
     }
     
@@ -164,11 +169,40 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
         // NOTE(kstandbridge): Clear screen
         DrawRectangle(Buffer, V2(0, 0), V2(Buffer->Width/2, Buffer->Height/2), 0.5f, 0.0f, 0.5f);
         
+        // NOTE(kstandbridge): Draw game board
+        {
+            
+            v2 P = V2(0, 0);
+            r32 TileSize = 5.0f;
+            r32 TilePadding = 0.3f;
+            v2 TileHalfSize = V2(TileSize/2, TileSize/2);
+            r32 BlockOffset = TileSize + TilePadding;
+            
+            P.X -= ((TileSize) + TilePadding)*(TILES_X - 1)/2;
+            P.Y -= ((TileSize) + TilePadding)*(TILES_Y - 1)/2;
+            r32 OriginalX = P.X;
+            
+            for(s32 Y = 0; Y < TILES_Y; ++Y)
+            {
+                for(s32 X = 0; X < TILES_X; ++X)
+                {
+                    if(*(GameState->Board + (Y * TILES_X) + X) == 0)
+                    {
+                        DrawRectangle(Buffer, P, TileHalfSize, 1.0f, 1.0f, 1.0f);
+                    }
+                    P.X += BlockOffset;
+                }
+                P.Y += BlockOffset;
+                P.X = OriginalX;
+                
+            }
+        }
+        
+#if 0        
+        // NOTE(kstandbridge): Draw tetromino
         r32 HalfSize = 2.5f;
         v2 InputP = GameState->P;
         s32 Piece = GameState->Piece;
-        
-        // NOTE(kstandbridge): Draw tetromino
         {
             v2 P = InputP - V2(HalfSize, HalfSize)*3;
             r32 OriginalX = P.X;
@@ -196,6 +230,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                 P.Y += BlockOffset;
             }
         }
+#endif
+        
     }
-    
 }

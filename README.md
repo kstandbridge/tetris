@@ -14,7 +14,7 @@ This is just an educational project I started to learn game programming. Takes i
 - [x] feat: render tetromino
 - [x] feat: position tetromino
 - [x] feat: rotate tetromino
-- [ ] feat: tetris play grid
+- [x] feat: tetris play grid
 - [ ] feat: collision detection
 - [ ] feat: force tetromino to drop
 - [ ] feat: lock tetromino when reach end of screen and spawn next

@@ -33,11 +33,17 @@ PushSize_(memory_arena *Arena, memory_index Size)
 #include "tetris_intrinsics.h"
 
 
+#define TILES_X 12
+#define TILES_Y 18
+
+
 struct game_state
 {
     v2 P;
     s32 Piece;
     s32 Rotation;
+    
+    s32 *Board;
 };
 
 char *Tetrominoes[] =
