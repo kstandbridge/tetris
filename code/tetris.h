@@ -35,7 +35,14 @@ PushSize_(memory_arena *Arena, memory_index Size)
 
 #define TILES_X 12
 #define TILES_Y 18
+#define DROP_TIME 20
 
+enum board_type
+{
+    BoardType_Clear,
+    BoardType_Wall,
+    BoardType_Locked
+};
 
 struct game_state
 {
@@ -43,8 +50,9 @@ struct game_state
     s32 Y;
     s32 Piece;
     s32 Rotation;
+    s32 DropCounter;
     
-    s32 *Board;
+    board_type *Board;
 };
 
 global_variable char *Tetrominoes[] =

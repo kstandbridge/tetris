@@ -87,7 +87,7 @@ RotateTetromino(s32 X, s32 Y, s32 R)
 }
 
 internal b32
-ValidMove(s32 *Board, s32 Tetromino, s32 Rotation, s32 TestX, s32 TestY)
+ValidMove(board_type *Board, s32 Tetromino, s32 Rotation, s32 TestX, s32 TestY)
 {
     for(s32 X = 0; X < 4; ++X)
     {
@@ -135,19 +135,19 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             GameState->X = TILES_X/2;
             GameState->Y = 1;
             GameState->Rotation = 0;
-            GameState->Board = PushArray(&MemoryArena, TILES_Y*TILES_X, s32);
+            GameState->Piece = 0;
+            GameState->Board = PushArray(&MemoryArena, TILES_Y*TILES_X, board_type);
             for(s32 Y = 0; Y < TILES_Y; ++Y)
             {
                 for(s32 X = 0; X < TILES_X; ++X)
                 {
                     if(X == 0 || X == TILES_X - 1 || Y == TILES_Y - 1)
                     {
-                        // NOTE(kstandbridge): Wall
-                        GameState->Board[Y * TILES_X + X] = 1;
+                        GameState->Board[Y * TILES_X + X] = BoardType_Wall;
                     }
                     else
                     {
-                        GameState->Board[Y * TILES_X + X] = 0;
+                        GameState->Board[Y * TILES_X + X] = BoardType_Clear;
                     }
                 }
             }
@@ -157,15 +157,16 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
     
     //////////////////////
     // NOTE(kstandbridge): Handle input
+    s32 MoveX = 0;
+    s32 MoveY = 0;
+    s32 Rotation = 0;
+    
     {    
         for (s32 ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
         {
             game_controller_input *Controller = GetController(Input, ControllerIndex);
             
             //entity ControllingEntity = GetHighEntity(GameState, LowIndex);
-            s32 MoveX = 0;
-            s32 MoveY = 0;
-            s32 Rotation = 0;
             
             if (Controller->IsAnalog)
             {
@@ -205,19 +206,56 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                 Rotation = 1;
             }
             
-            if(ValidMove(GameState->Board, GameState->Piece, GameState->Rotation + Rotation, GameState->X + MoveX, GameState->Y + MoveY))
-            {
-                GameState->Rotation += Rotation;
-                GameState->X += MoveX;
-                GameState->Y += MoveY;
-            }
-            else
-            {
-                // TODO(kstandbridge): Invalid move sound
-            }
-            
         }
     }
+    
+    if(ValidMove(GameState->Board, GameState->Piece, GameState->Rotation + Rotation, GameState->X + MoveX, GameState->Y + MoveY))
+    {
+        GameState->Rotation += Rotation;
+        GameState->X += MoveX;
+        GameState->Y += MoveY;
+    }
+    else
+    {
+        // TODO(kstandbridge): Invalid move sound
+    }
+    GameState->DropCounter++;
+    if(GameState->DropCounter > DROP_TIME)
+    {
+        GameState->DropCounter = 0;
+        if(ValidMove(GameState->Board, GameState->Piece, GameState->Rotation, GameState->X, GameState->Y + 1))
+        {
+            GameState->Y++;
+        }
+        else
+        {
+            // NOTE(kstandbridge): Lock the piece onto the board
+            for(s32 Y = 0; Y < 4; ++Y)
+            {
+                for(s32 X = 0; X < 4; ++X)
+                {
+                    if(Tetrominoes[GameState->Piece][RotateTetromino(X, Y, GameState->Rotation)] == '0')
+                    {
+                        GameState->Board[(GameState->Y + Y) * TILES_X + (GameState->X + X)] = BoardType_Locked;
+                    }
+                }
+            }
+            
+            GameState->X = TILES_X/2;
+            GameState->Y = 1;
+            GameState->Rotation = 0;
+            GameState->Piece = 1;
+            
+            // NOTE(kstandbridge): Newly placed piece is invalid move thus game over
+            if(!ValidMove(GameState->Board, GameState->Piece, GameState->Rotation, GameState->X, GameState->Y))
+            {
+                // TODO(kstandbridge): Game over screen
+                Memory->IsInitialized = false;
+            }
+        }
+    }
+    
+    
     
     //////////////////////
     // NOTE(kstandbridge): Render
@@ -243,14 +281,28 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             {
                 for(s32 X = 0; X < TILES_X; ++X)
                 {
-                    if(*(GameState->Board + (Y * TILES_X) + X) == 0)
+                    board_type BoardType = *(GameState->Board + (Y * TILES_X) + X);
+                    switch(BoardType)
                     {
-                        DrawRectangle(Buffer, P, TileHalfSize, 1.0f, 1.0f, 1.0f);
+                        
+                        case BoardType_Clear:
+                        {
+                            DrawRectangle(Buffer, P, TileHalfSize, 1.0f, 1.0f, 1.0f);
+                        } break;
+                        
+                        case BoardType_Wall:
+                        {
+                            DrawRectangle(Buffer, P, TileHalfSize, 0.0f, 0.0f, 0.0f);
+                        } break;
+                        
+                        case BoardType_Locked:
+                        {
+                            DrawRectangle(Buffer, P, TileHalfSize, 0.5f, 0.5f, 0.5f);
+                        } break;
+                        
+                        InvalidDefaultCase;
                     }
-                    else
-                    {
-                        DrawRectangle(Buffer, P, TileHalfSize, 0.0f, 0.0f, 0.0f);
-                    }
+                    
                     P.X += BlockOffset;
                 }
                 P.Y += BlockOffset;
@@ -307,10 +359,6 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                     if(*At == '0')
                     {
                         DrawRectangle(Buffer, P, V2(HalfSize, HalfSize), 0.0f, 0.0f, 0.0f);
-                    }
-                    else
-                    {
-                        DrawRectangle(Buffer, P, V2(HalfSize, HalfSize), 1.0f, 1.0f, 1.0f);
                     }
                     P.X += BlockOffset;
                 }
