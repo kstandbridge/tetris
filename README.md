@@ -29,7 +29,8 @@ This is just an educational project I started to learn game programming. Takes i
 - [x] feat: preview next tetromino
 - [x] feat: allow rotating near edge of screen
 - [x] feat: add game over screen
-- [ ] feat: title screen and choose game mode
+- [x] feat: title screen
+- [ ] feat: title screen game mode selection
 - [ ] feat: tetromino colors change based on level
 - [ ] feat: add game mode where have to clear all partial blocks 
 - [ ] feat: add game win screen

@@ -122,7 +122,7 @@ UpdateGameOver(game_state *GameState, game_input *Input)
     {
         game_controller_input *Controller = GetController(Input, ControllerIndex);
         
-        if(Controller->Start.EndedDown)
+        if(Controller->Start.EndedDown && Controller->Start.HalfTransitionCount == 1)
         {
             Exit = true;
         }
@@ -295,104 +295,98 @@ UpdateGame(game_state *GameState, game_input *Input)
 internal void
 RenderGame(game_state *GameState, game_offscreen_buffer *Buffer)
 {
+    // NOTE(kstandbridge): Clear screen
+    DrawRectangle(Buffer, V2(0, 0), V2(Buffer->Width/2, Buffer->Height/2), 0.5f, 0.0f, 0.5f);
     
-    //////////////////////
-    // NOTE(kstandbridge): Render
+    // NOTE(kstandbridge): Draw game board
+    v2 P = V2(0, 0);
+    r32 TileSize = 5.0f;
+    r32 TilePadding = 0.3f;
+    v2 TileHalfSize = V2(TileSize/2, TileSize/2);
+    r32 BlockOffset = TileSize + TilePadding;
+    
+    r32 TotalSize = (TileSize) + TilePadding;
     {
-        // NOTE(kstandbridge): Clear screen
-        DrawRectangle(Buffer, V2(0, 0), V2(Buffer->Width/2, Buffer->Height/2), 0.5f, 0.0f, 0.5f);
-        
-        // NOTE(kstandbridge): Draw game board
-        
-        v2 P = V2(0, 0);
-        r32 TileSize = 5.0f;
-        r32 TilePadding = 0.3f;
-        v2 TileHalfSize = V2(TileSize/2, TileSize/2);
-        r32 BlockOffset = TileSize + TilePadding;
-        
-        r32 TotalSize = (TileSize) + TilePadding;
-        {
-            P.X -= (TotalSize)*(TILES_X - 1)/2;
-            P.Y -= (TotalSize)*(TILES_Y - 1)/2;
-            r32 OriginalX = P.X;
-            
-            for(s32 Y = 0; Y < TILES_Y; ++Y)
-            {
-                for(s32 X = 0; X < TILES_X; ++X)
-                {
-                    board_type BoardType = *(GameState->Board + (Y * TILES_X) + X);
-                    switch(BoardType)
-                    {
-                        
-                        case BoardType_Clear:
-                        {
-                            DrawRectangle(Buffer, P, TileHalfSize, 1.0f, 1.0f, 1.0f);
-                        } break;
-                        
-                        case BoardType_Wall:
-                        {
-                            DrawRectangle(Buffer, P, TileHalfSize, 0.0f, 0.0f, 0.0f);
-                        } break;
-                        
-                        case BoardType_Locked:
-                        {
-                            DrawRectangle(Buffer, P, TileHalfSize, 0.5f, 0.5f, 0.5f);
-                        } break;
-                        
-                        case BoardType_Line:
-                        {
-                            DrawRectangle(Buffer, P, TileHalfSize, 0.0f, 1.0f, 0.0f);
-                        } break;
-                        
-                        InvalidDefaultCase;
-                    }
-                    
-                    P.X += BlockOffset;
-                }
-                P.Y += BlockOffset;
-                P.X = OriginalX;
-                
-            }
-        }
-        
-        P = V2(0, 0);
         P.X -= (TotalSize)*(TILES_X - 1)/2;
         P.Y -= (TotalSize)*(TILES_Y - 1)/2;
-        P.X += TotalSize*GameState->X;
-        P.Y += TotalSize*GameState->Y;
+        r32 OriginalX = P.X;
         
-        // NOTE(kstandbridge): Draw current piece
-        DrawTetromino(Buffer, P, TileSize, TilePadding, GameState->Piece, GameState->Rotation);
-        
-        // NOTE(kstandbridge): Draw HUD
+        for(s32 Y = 0; Y < TILES_Y; ++Y)
         {
-            DrawRectangle(Buffer, V2(56, -17), V2(20, 20), 0, 0, 0);
-            char NumberBuffer[16];
-            P = V2(40, -30);
-            DrawString(Buffer, "SCORE", P, 0.4, TextAlign_Left, 1, 1, 1);
-            P.Y += 10.0f;
-            _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "%06d", GameState->Score);
-            DrawString(Buffer, NumberBuffer, P, 0.4, TextAlign_Left, 1, 1, 1);
-            
-            DrawRectangle(Buffer, V2(52, 22), V2(15, 17), 0, 0, 0);
-            P.Y += 10.0f;
-            DrawString(Buffer, "LINES", P, 0.4, TextAlign_Left, 1, 1, 1);
-            P.Y += 10.0f;
-            _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "%03d", GameState->TotalLines);
-            DrawString(Buffer, NumberBuffer, P, 0.4, TextAlign_Left, 1, 1, 1);
-            P.Y += 12.0f;
-            DrawString(Buffer, "NEXT", P, 0.4, TextAlign_Left, 1, 1, 1);
-            DrawTetromino(Buffer, V2(40, 20), TileSize, TilePadding, GameState->NextPiece, 0);
-            
-            P = V2(-80, -40);
-            _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "COUNTER %02.f", GameState->DropCounter);
-            DrawString(Buffer, NumberBuffer, P, 0.2, TextAlign_Left, 1, 1, 1);
-            P.Y += 5.0f;
-            _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "SPEED %d", GameState->DropSpeed);
-            DrawString(Buffer, NumberBuffer, P, 0.2, TextAlign_Left, 1, 1, 1);
-            
+            for(s32 X = 0; X < TILES_X; ++X)
+            {
+                board_type BoardType = *(GameState->Board + (Y * TILES_X) + X);
+                switch(BoardType)
+                {
+                    
+                    case BoardType_Clear:
+                    {
+                        DrawRectangle(Buffer, P, TileHalfSize, 1.0f, 1.0f, 1.0f);
+                    } break;
+                    
+                    case BoardType_Wall:
+                    {
+                        DrawRectangle(Buffer, P, TileHalfSize, 0.0f, 0.0f, 0.0f);
+                    } break;
+                    
+                    case BoardType_Locked:
+                    {
+                        DrawRectangle(Buffer, P, TileHalfSize, 0.5f, 0.5f, 0.5f);
+                    } break;
+                    
+                    case BoardType_Line:
+                    {
+                        DrawRectangle(Buffer, P, TileHalfSize, 0.0f, 1.0f, 0.0f);
+                    } break;
+                    
+                    InvalidDefaultCase;
+                }
+                
+                P.X += BlockOffset;
+            }
+            P.Y += BlockOffset;
+            P.X = OriginalX;
             
         }
+    }
+    
+    P = V2(0, 0);
+    P.X -= (TotalSize)*(TILES_X - 1)/2;
+    P.Y -= (TotalSize)*(TILES_Y - 1)/2;
+    P.X += TotalSize*GameState->X;
+    P.Y += TotalSize*GameState->Y;
+    
+    // NOTE(kstandbridge): Draw current piece
+    DrawTetromino(Buffer, P, TileSize, TilePadding, GameState->Piece, GameState->Rotation);
+    
+    // NOTE(kstandbridge): Draw HUD
+    {
+        DrawRectangle(Buffer, V2(56, -17), V2(20, 20), 0, 0, 0);
+        char NumberBuffer[16];
+        P = V2(40, -30);
+        DrawString(Buffer, "SCORE", P, 0.4, TextAlign_Left, 1, 1, 1);
+        P.Y += 10.0f;
+        _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "%06d", GameState->Score);
+        DrawString(Buffer, NumberBuffer, P, 0.4, TextAlign_Left, 1, 1, 1);
+        
+        DrawRectangle(Buffer, V2(52, 22), V2(15, 17), 0, 0, 0);
+        P.Y += 10.0f;
+        DrawString(Buffer, "LINES", P, 0.4, TextAlign_Left, 1, 1, 1);
+        P.Y += 10.0f;
+        _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "%03d", GameState->TotalLines);
+        DrawString(Buffer, NumberBuffer, P, 0.4, TextAlign_Left, 1, 1, 1);
+        P.Y += 12.0f;
+        DrawString(Buffer, "NEXT", P, 0.4, TextAlign_Left, 1, 1, 1);
+        DrawTetromino(Buffer, V2(40, 20), TileSize, TilePadding, GameState->NextPiece, 0);
+        
+        P = V2(-80, -40);
+        _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "COUNTER %02.f", GameState->DropCounter);
+        DrawString(Buffer, NumberBuffer, P, 0.2, TextAlign_Left, 1, 1, 1);
+        P.Y += 5.0f;
+        _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "SPEED %d", GameState->DropSpeed);
+        DrawString(Buffer, NumberBuffer, P, 0.2, TextAlign_Left, 1, 1, 1);
+        
+        
     }
 }
 
@@ -404,7 +398,6 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
     
     game_state *GameState = (game_state *)Memory->PermanentStorage;
-    
     
     if(!GlobalRandomState)
     {
@@ -422,34 +415,9 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
         InitializeArena(&MemoryArena, 
                         Memory->PermanentStorageSize - sizeof(game_state),
                         (u8 *)Memory->PermanentStorage + sizeof(game_state));
-        
-        GameState->Score = 0;
-        GameState->TotalLines = 0;
-        GameState->X = CENTER_X;
-        GameState->Y = 1;
-        GameState->Rotation = 0;
-        GameState->DropCounter = 0;
-        GameState->DropSpeed = 10;
-        GameState->Piece = GetRandomTetromino();
-        GameState->NextPiece = GetRandomTetromino();
         GameState->Lines = PushArray(&MemoryArena, LINE_COUNT, s32);
-        GameState->NextLine = 0;
         GameState->Board = PushArray(&MemoryArena, TILES_Y*TILES_X, board_type);
-        GameState->GameMode = GameMode_Play;
-        for(s32 Y = 0; Y < TILES_Y; ++Y)
-        {
-            for(s32 X = 0; X < TILES_X; ++X)
-            {
-                if(X == 0 || X == TILES_X - 1 || Y == TILES_Y - 1)
-                {
-                    GameState->Board[Y * TILES_X + X] = BoardType_Wall;
-                }
-                else
-                {
-                    GameState->Board[Y * TILES_X + X] = BoardType_Clear;
-                }
-            }
-        }
+        GameState->GameMode = GameMode_Menu;
         
     }
     
@@ -458,8 +426,60 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
     {
         case GameMode_Menu:
         {
-            // TODO(kstandbridge): Game menu
-            Memory->IsInitialized = false;
+            
+            b32 Play = false;
+            for (s32 ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
+            {
+                game_controller_input *Controller = GetController(Input, ControllerIndex);
+                
+                if(Controller->Start.EndedDown && Controller->Start.HalfTransitionCount == 1)
+                {
+                    Play = true;
+                }
+            }
+            
+            if(Play)
+            {
+                GameState->Score = 0;
+                GameState->TotalLines = 0;
+                GameState->X = CENTER_X;
+                GameState->Y = 1;
+                GameState->Rotation = 0;
+                GameState->DropCounter = 0;
+                GameState->DropSpeed = 10;
+                GameState->Piece = GetRandomTetromino();
+                GameState->NextPiece = GetRandomTetromino();
+                GameState->NextLine = 0;
+                for(s32 Y = 0; Y < TILES_Y; ++Y)
+                {
+                    for(s32 X = 0; X < TILES_X; ++X)
+                    {
+                        if(X == 0 || X == TILES_X - 1 || Y == TILES_Y - 1)
+                        {
+                            GameState->Board[Y * TILES_X + X] = BoardType_Wall;
+                        }
+                        else
+                        {
+                            GameState->Board[Y * TILES_X + X] = BoardType_Clear;
+                        }
+                    }
+                }
+                GameState->GameMode = GameMode_Play;
+            }
+            
+            // NOTE(kstandbridge): Clear screen
+            DrawRectangle(Buffer, V2(0, 0), V2(Buffer->Width/2, Buffer->Height/2), 0.5f, 0.0f, 0.5f);
+            
+            DrawRectangle(Buffer, V2(0, 0), V2(31.7f, 6.0f), 0, 0, 0);
+            DrawString(Buffer, "PRESS START", V2(0, 2), 0.4, TextAlign_Center, 1, 1, 1);
+            
+        } break;
+        
+        case GameMode_Play:
+        {
+            UpdateGame(GameState, Input);
+            
+            RenderGame(GameState, Buffer);
             
         } break;
         
@@ -474,13 +494,6 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             
         } break;
         
-        case GameMode_Play:
-        {
-            UpdateGame(GameState, Input);
-            
-            RenderGame(GameState, Buffer);
-            
-        } break;
     }
     
 }
