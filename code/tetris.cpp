@@ -222,7 +222,23 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
     }
     else
     {
-        // TODO(kstandbridge): Invalid move sound
+        if(Rotation)
+        {
+            // NOTE(kstandbridge): Move 2 spaces automatically on rotates next to wall/object
+            for(MoveX = -2; MoveX < 3; ++MoveX)
+            {
+                if(ValidMove(GameState->Board, GameState->Piece, GameState->Rotation + Rotation, GameState->X + MoveX, GameState->Y))
+                {
+                    GameState->Rotation += Rotation;
+                    GameState->X += MoveX;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            // TODO(kstandbridge): Invalid move sound
+        }
     }
     GameState->DropCounter -= MoveY*10;
     GameState->DropCounter -= GameState->DropSpeed * Input->dtForFrame;
@@ -401,7 +417,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             DrawString(Buffer, NumberBuffer, P, 0.4, TextAlign_Left, 1, 1, 1);
             P.Y += 12.0f;
             DrawString(Buffer, "NEXT", P, 0.4, TextAlign_Left, 1, 1, 1);
-            DrawTetromino(Buffer, V2(40, 20), TileSize, TilePadding, GameState->NextPiece, GameState->Rotation);
+            DrawTetromino(Buffer, V2(40, 20), TileSize, TilePadding, GameState->NextPiece, 0);
             
             P = V2(-80, -40);
             _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "COUNTER %02.f", GameState->DropCounter);
