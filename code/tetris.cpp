@@ -159,7 +159,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                 
                 if(Controller->MoveDown.EndedDown)
                 {
-                    MoveY = +1;
+                    MoveY = 1;
                 }
                 if(Controller->MoveLeft.EndedDown && Controller->MoveLeft.HalfTransitionCount == 1)
                 {
@@ -179,16 +179,16 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
         }
     }
     
-    if(ValidMove(GameState->Board, GameState->Piece, GameState->Rotation + Rotation, GameState->X + MoveX, GameState->Y + MoveY))
+    if(ValidMove(GameState->Board, GameState->Piece, GameState->Rotation + Rotation, GameState->X + MoveX, GameState->Y))
     {
         GameState->Rotation += Rotation;
         GameState->X += MoveX;
-        GameState->Y += MoveY;
     }
     else
     {
         // TODO(kstandbridge): Invalid move sound
     }
+    GameState->DropCounter -= MoveY*10;
     GameState->DropCounter -= GameState->DropSpeed * Input->dtForFrame;
     if(GameState->DropCounter < 0)
     {
@@ -255,7 +255,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                         {
                             GameState->Board[(GameState->Y + Y) * TILES_X + X] = BoardType_Line;
                         }
-                        GameState->DropCounter = 0;
+                        GameState->DropCounter = DROP_TIME;
                         GameState->Lines[GameState->NextLine++] = GameState->Y + Y;
                         if(GameState->NextLine >= LINE_COUNT) GameState->NextLine = 0;
                     }
@@ -267,6 +267,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             GameState->Rotation = 0;
             GameState->Piece = RandomRange_s32(0, ArrayCount(Tetrominoes) - 1);
             GameState->DropCounter = DROP_TIME;
+            GameState->NextLine = 0;
             // NOTE(kstandbridge): Newly placed piece is invalid move thus game over
             if(!ValidMove(GameState->Board, GameState->Piece, GameState->Rotation, GameState->X, GameState->Y))
             {
