@@ -48,6 +48,7 @@ enum board_type
 
 struct game_state
 {
+    s32 Score;
     s32 X;
     s32 Y;
     s32 Piece;
