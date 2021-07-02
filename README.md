@@ -26,7 +26,8 @@ This is just an educational project I started to learn game programming. Takes i
 - [x] feat: speed up game based on pieces spawned
 - [x] feat: lock tetromino if forced down by player
 - [x] fix: lines remain when linecount wraps
-- [ ] feat: preview next tetromino
+- [x] feat: preview next tetromino
+- [ ] feat: allow rotating near edge of screen
 - [ ] feat: tetromino colors change based on level
 - [ ] feat: add game over screen
 - [ ] feat: title screen and choose game mode

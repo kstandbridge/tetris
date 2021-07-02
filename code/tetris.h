@@ -54,6 +54,7 @@ struct game_state
     s32 X;
     s32 Y;
     s32 Piece;
+    s32 NextPiece;
     s32 Rotation;
     r32 DropCounter;
     s32 DropSpeed;

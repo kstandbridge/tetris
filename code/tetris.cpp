@@ -80,6 +80,41 @@ ValidMove(board_type *Board, s32 Tetromino, s32 Rotation, s32 TestX, s32 TestY)
     return true;
 }
 
+internal s32
+GetRandomTetromino()
+{
+    s32 Result = RandomRange_s32(0, ArrayCount(Tetrominoes) - 1);
+    return Result;
+}
+
+internal void
+DrawTetromino(game_offscreen_buffer *Buffer, v2 P, r32 TileSize, r32 TilePadding, s32 Piece, s32 Rotation)
+{
+    v2 TileHalfSize = V2(TileSize/2, TileSize/2);
+    r32 TotalSize = TileSize + TilePadding;
+    
+    r32 OriginalX = P.X;
+    for(s32 Y = 0; Y < 4; ++Y)
+    {
+        for(s32 X = 0; X < 4; ++X)
+        {
+            s32 Index = GetRotateOffset(X, Y, Rotation);
+            
+            char *At = Tetrominoes[Piece] + Index;
+            if(*At == '0')
+            {
+                DrawRectangle(Buffer, P, TileHalfSize, 0.0f, 0.0f, 0.5f);
+            }
+            
+            P.X += TotalSize;
+        }
+        P.Y += TotalSize;
+        P.X = OriginalX;
+    }
+    
+    
+}
+
 void
 GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
@@ -111,7 +146,8 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             GameState->Rotation = 0;
             GameState->DropCounter = 0;
             GameState->DropSpeed = 10;
-            GameState->Piece = 0;
+            GameState->Piece = GetRandomTetromino();
+            GameState->NextPiece = GetRandomTetromino();
             GameState->Lines = PushArray(&MemoryArena, LINE_COUNT, s32);
             GameState->NextLine = 0;
             GameState->Board = PushArray(&MemoryArena, TILES_Y*TILES_X, board_type);
@@ -266,7 +302,8 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             GameState->X = CENTER_X;
             GameState->Y = 1;
             GameState->Rotation = 0;
-            GameState->Piece = RandomRange_s32(0, ArrayCount(Tetrominoes) - 1);
+            GameState->Piece = GameState->NextPiece;
+            GameState->NextPiece = GetRandomTetromino();
             GameState->DropCounter = DROP_TIME;
             // NOTE(kstandbridge): Newly placed piece is invalid move thus game over
             if(!ValidMove(GameState->Board, GameState->Piece, GameState->Rotation, GameState->X, GameState->Y))
@@ -337,35 +374,18 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             }
         }
         
+        P = V2(0, 0);
+        P.X -= (TotalSize)*(TILES_X - 1)/2;
+        P.Y -= (TotalSize)*(TILES_Y - 1)/2;
+        P.X += TotalSize*GameState->X;
+        P.Y += TotalSize*GameState->Y;
+        
         // NOTE(kstandbridge): Draw current piece
-        {        
-            P = V2(0, 0);
-            P.X -= (TotalSize)*(TILES_X - 1)/2;
-            P.Y -= (TotalSize)*(TILES_Y - 1)/2;
-            P.X += TotalSize*GameState->X;
-            P.Y += TotalSize*GameState->Y;
-            r32 OriginalX = P.X;
-            for(s32 Y = 0; Y < 4; ++Y)
-            {
-                for(s32 X = 0; X < 4; ++X)
-                {
-                    s32 Index = GetRotateOffset(X, Y, GameState->Rotation);
-                    
-                    char *At = Tetrominoes[GameState->Piece] + Index;
-                    if(*At == '0')
-                    {
-                        DrawRectangle(Buffer, P, TileHalfSize, 0.0f, 0.0f, 0.5f);
-                    }
-                    
-                    P.X += TotalSize;
-                }
-                P.Y += TotalSize;
-                P.X = OriginalX;
-            }
-        }
+        DrawTetromino(Buffer, P, TileSize, TilePadding, GameState->Piece, GameState->Rotation);
         
         // NOTE(kstandbridge): Draw HUD
         {
+            DrawRectangle(Buffer, V2(56, -17), V2(20, 20), 0, 0, 0);
             char NumberBuffer[16];
             P = V2(40, -30);
             DrawString(Buffer, "SCORE", P, 0.4, TextAlign_Left, 1, 1, 1);
@@ -373,11 +393,15 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "%06d", GameState->Score);
             DrawString(Buffer, NumberBuffer, P, 0.4, TextAlign_Left, 1, 1, 1);
             
+            DrawRectangle(Buffer, V2(52, 22), V2(15, 17), 0, 0, 0);
             P.Y += 10.0f;
             DrawString(Buffer, "LINES", P, 0.4, TextAlign_Left, 1, 1, 1);
             P.Y += 10.0f;
             _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "%03d", GameState->TotalLines);
             DrawString(Buffer, NumberBuffer, P, 0.4, TextAlign_Left, 1, 1, 1);
+            P.Y += 12.0f;
+            DrawString(Buffer, "NEXT", P, 0.4, TextAlign_Left, 1, 1, 1);
+            DrawTetromino(Buffer, V2(40, 20), TileSize, TilePadding, GameState->NextPiece, GameState->Rotation);
             
             P = V2(-80, -40);
             _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "COUNTER %02.f", GameState->DropCounter);
@@ -385,6 +409,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             P.Y += 5.0f;
             _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "SPEED %d", GameState->DropSpeed);
             DrawString(Buffer, NumberBuffer, P, 0.2, TextAlign_Left, 1, 1, 1);
+            
             
         }
     }
