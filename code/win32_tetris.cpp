@@ -222,6 +222,18 @@ DEBUGPlatformWriteEntireFile(thread_context *Thread, char *Filename, u32 MemoryS
     return (Result);
 }
 
+s64
+Win32GetTimeStamp()
+{
+    s64 Result;
+    
+    LARGE_INTEGER LastCounter;
+    QueryPerformanceCounter(&LastCounter);
+    Result = LastCounter.QuadPart;
+    
+    return Result;
+}
+
 inline FILETIME
 Win32GetLastWriteTime(char *FileName)
 {
@@ -1152,6 +1164,7 @@ WinMain(HINSTANCE Instance,
 			GameMemory.DEBUGPlatformFreeFileMemory = DEBUGPlatformFreeFileMemory;
 			GameMemory.DEBUGPlatformReadEntireFile = DEBUGPlatformReadEntireFile;
 			GameMemory.DEBUGPlatformWriteEntireFile = DEBUGPlatformWriteEntireFile;
+            GameMemory.GetTimeStamp = Win32GetTimeStamp;
             
 			// TODO(kstandbridge): Handle various memory footprints (USING SYSTEM METRICS)
             

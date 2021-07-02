@@ -1,4 +1,5 @@
 #include "tetris.h"
+#include "tetris_random.cpp"
 
 internal void
 GameOutputSound(game_state *GameState, game_sound_output_buffer *SoundBuffer, int ToneHz)
@@ -132,6 +133,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
         if (!Memory->IsInitialized)
         {
             Memory->IsInitialized = true;
+            GlobalRandomState = (u32)Memory->GetTimeStamp();
             GameState->X = TILES_X/2;
             GameState->Y = 1;
             GameState->Rotation = 0;
@@ -153,6 +155,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                     }
                 }
             }
+            
         }
     }
     
@@ -196,11 +199,6 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                 {
                     MoveX = 1;
                 }
-            }
-            
-            if(Controller->ActionUp.EndedDown && Controller->ActionUp.HalfTransitionCount == 1)
-            {
-                GameState->Piece = (GameState->Piece + 1) % ArrayCount(Tetrominoes);
             }
             
             if(Controller->ActionDown.EndedDown && Controller->ActionDown.HalfTransitionCount == 1)
@@ -288,7 +286,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             GameState->X = TILES_X/2;
             GameState->Y = 1;
             GameState->Rotation = 0;
-            GameState->Piece = 1;
+            GameState->Piece = RandomRange_s32(0, ArrayCount(Tetrominoes) - 1);
             
             // NOTE(kstandbridge): Newly placed piece is invalid move thus game over
             if(!ValidMove(GameState->Board, GameState->Piece, GameState->Rotation, GameState->X, GameState->Y))

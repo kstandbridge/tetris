@@ -134,6 +134,8 @@ typedef debug_read_file_result debug_platform_read_entire_file(thread_context *T
 
 typedef b32 debug_platform_write_entire_file(thread_context *Thread, char *Filename, u32 MemorySize, void *Memory);
 
+typedef s64 get_time_stamp();
+
 #endif
 
 /*
@@ -225,14 +227,13 @@ struct game_memory
     debug_platform_free_file_memory *DEBUGPlatformFreeFileMemory;
     debug_platform_read_entire_file *DEBUGPlatformReadEntireFile;
     debug_platform_write_entire_file *DEBUGPlatformWriteEntireFile;
+    get_time_stamp *GetTimeStamp;
 };
 
 typedef void game_update_and_render(thread_context *Thread, game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer);
 
-// NOTE(kstandbridge): At the moment, this has to be a very fast function, it cannot be
-// more than a millisecond or so.
-// TODO(kstandbridge): Reduce the pressure on this function's performance by measuring it
-// or asking about it, etc
+// NOTE(kstandbridge): At the moment, this has to be a very fast function, it cannot be more than a millisecond or so.
+// TODO(kstandbridge): Reduce the pressure on this function's performance by measuring it or asking about it, etc
 typedef void game_get_sound_samples(thread_context *Thread, game_memory *Memory, game_sound_output_buffer *SoundBuffer);
 
 inline game_controller_input *
