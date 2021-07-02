@@ -122,7 +122,7 @@ UpdateGameOver(game_state *GameState, game_input *Input)
     {
         game_controller_input *Controller = GetController(Input, ControllerIndex);
         
-        if(Controller->ActionDown.EndedDown && Controller->ActionDown.HalfTransitionCount == 1)
+        if(Controller->Start.EndedDown)
         {
             Exit = true;
         }
