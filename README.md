@@ -28,9 +28,9 @@ This is just an educational project I started to learn game programming. Takes i
 - [x] fix: lines remain when linecount wraps
 - [x] feat: preview next tetromino
 - [x] feat: allow rotating near edge of screen
-- [ ] feat: tetromino colors change based on level
-- [ ] feat: add game over screen
+- [x] feat: add game over screen
 - [ ] feat: title screen and choose game mode
+- [ ] feat: tetromino colors change based on level
 - [ ] feat: add game mode where have to clear all partial blocks 
 - [ ] feat: add game win screen
 - [ ] feat: add game mode where valid lines are not cleared

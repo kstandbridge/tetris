@@ -111,108 +111,68 @@ DrawTetromino(game_offscreen_buffer *Buffer, v2 P, r32 TileSize, r32 TilePadding
         P.Y += TotalSize;
         P.X = OriginalX;
     }
-    
-    
 }
 
-void
-GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
+internal void
+UpdateGameOver(game_state *GameState, game_input *Input)
 {
-    Assert((&Input->Controllers[0].Terminator - &Input->Controllers[0].Buttons[0]) ==
-           ArrayCount(Input->Controllers[0].Buttons));
-    Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
+    b32 Exit = false;
     
-    game_state *GameState = (game_state *)Memory->PermanentStorage;
-    memory_arena MemoryArena;
-    InitializeArena(&MemoryArena, 
-                    Memory->PermanentStorageSize - sizeof(game_state),
-                    (u8 *)Memory->PermanentStorage + sizeof(game_state));
-    
-    if(!GlobalRandomState)
+    for (s32 ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
     {
-        GlobalRandomState = (u32)Memory->GetTimeStamp();
-    }
-    
-    //////////////////////
-    // NOTE(kstandbridge): Initalize game
-    {    
-        if (!Memory->IsInitialized)
+        game_controller_input *Controller = GetController(Input, ControllerIndex);
+        
+        if(Controller->ActionDown.EndedDown && Controller->ActionDown.HalfTransitionCount == 1)
         {
-            Memory->IsInitialized = true;
-            GameState->Score = 0;
-            GameState->TotalLines = 0;
-            GameState->X = CENTER_X;
-            GameState->Y = 1;
-            GameState->Rotation = 0;
-            GameState->DropCounter = 0;
-            GameState->DropSpeed = 10;
-            GameState->Piece = GetRandomTetromino();
-            GameState->NextPiece = GetRandomTetromino();
-            GameState->Lines = PushArray(&MemoryArena, LINE_COUNT, s32);
-            GameState->NextLine = 0;
-            GameState->Board = PushArray(&MemoryArena, TILES_Y*TILES_X, board_type);
-            for(s32 Y = 0; Y < TILES_Y; ++Y)
-            {
-                for(s32 X = 0; X < TILES_X; ++X)
-                {
-                    if(X == 0 || X == TILES_X - 1 || Y == TILES_Y - 1)
-                    {
-                        GameState->Board[Y * TILES_X + X] = BoardType_Wall;
-                    }
-                    else
-                    {
-                        GameState->Board[Y * TILES_X + X] = BoardType_Clear;
-                    }
-                }
-            }
-            
+            Exit = true;
         }
     }
     
-    
-    //////////////////////
-    // NOTE(kstandbridge): Handle input
+    if(Exit)
+    {
+        GameState->GameMode = GameMode_Menu;
+    }
+}
+
+internal void
+UpdateGame(game_state *GameState, game_input *Input)
+{
     s32 MoveX = 0;
     s32 MoveY = 0;
     s32 Rotation = 0;
     
-    {    
-        for (s32 ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
+    for (s32 ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
+    {
+        game_controller_input *Controller = GetController(Input, ControllerIndex);
+        
+        if (Controller->IsAnalog)
         {
-            game_controller_input *Controller = GetController(Input, ControllerIndex);
-            
-            //entity ControllingEntity = GetHighEntity(GameState, LowIndex);
-            
-            if (Controller->IsAnalog)
-            {
-                // NOTE(kstandbridge): Use analog movement tuning
-                // TODO(kstandbridge): Analog movement
-                //ddP = v2{ Controller->StickAverageX, -Controller->StickAverageY };
-            }
-            else
-            {
-                // NOTE(kstandbridge): Use digital movement tuning
-                
-                if(Controller->MoveDown.EndedDown)
-                {
-                    MoveY = 1;
-                }
-                if(Controller->MoveLeft.EndedDown && Controller->MoveLeft.HalfTransitionCount == 1)
-                {
-                    MoveX = -1;
-                }
-                if(Controller->MoveRight.EndedDown && Controller->MoveRight.HalfTransitionCount == 1)
-                {
-                    MoveX = 1;
-                }
-            }
-            
-            if(Controller->ActionDown.EndedDown && Controller->ActionDown.HalfTransitionCount == 1)
-            {
-                Rotation = 1;
-            }
-            
+            // TODO(kstandbridge): Analog movement
+            //ddP = v2{ Controller->StickAverageX, -Controller->StickAverageY };
         }
+        else
+        {
+            // NOTE(kstandbridge): Use digital movement tuning
+            
+            if(Controller->MoveDown.EndedDown)
+            {
+                MoveY = 1;
+            }
+            if(Controller->MoveLeft.EndedDown && Controller->MoveLeft.HalfTransitionCount == 1)
+            {
+                MoveX = -1;
+            }
+            if(Controller->MoveRight.EndedDown && Controller->MoveRight.HalfTransitionCount == 1)
+            {
+                MoveX = 1;
+            }
+        }
+        
+        if(Controller->ActionDown.EndedDown && Controller->ActionDown.HalfTransitionCount == 1)
+        {
+            Rotation = 1;
+        }
+        
     }
     
     if(ValidMove(GameState->Board, GameState->Piece, GameState->Rotation + Rotation, GameState->X + MoveX, GameState->Y))
@@ -240,6 +200,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             // TODO(kstandbridge): Invalid move sound
         }
     }
+    
     GameState->DropCounter -= MoveY*10;
     GameState->DropCounter -= GameState->DropSpeed * Input->dtForFrame;
     if(GameState->DropCounter < 0)
@@ -325,11 +286,15 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             if(!ValidMove(GameState->Board, GameState->Piece, GameState->Rotation, GameState->X, GameState->Y))
             {
                 // TODO(kstandbridge): Game over screen
-                Memory->IsInitialized = false;
+                GameState->GameMode = GameMode_GameOver;
             }
         }
     }
-    
+}
+
+internal void
+RenderGame(game_state *GameState, game_offscreen_buffer *Buffer)
+{
     
     //////////////////////
     // NOTE(kstandbridge): Render
@@ -429,4 +394,93 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             
         }
     }
+}
+
+void
+GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
+{
+    Assert((&Input->Controllers[0].Terminator - &Input->Controllers[0].Buttons[0]) ==
+           ArrayCount(Input->Controllers[0].Buttons));
+    Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
+    
+    game_state *GameState = (game_state *)Memory->PermanentStorage;
+    
+    
+    if(!GlobalRandomState)
+    {
+        GlobalRandomState = (u32)Memory->GetTimeStamp();
+    }
+    
+    //////////////////////
+    // NOTE(kstandbridge): Initalize game
+    
+    if (!Memory->IsInitialized)
+    {
+        Memory->IsInitialized = true;
+        
+        memory_arena MemoryArena;
+        InitializeArena(&MemoryArena, 
+                        Memory->PermanentStorageSize - sizeof(game_state),
+                        (u8 *)Memory->PermanentStorage + sizeof(game_state));
+        
+        GameState->Score = 0;
+        GameState->TotalLines = 0;
+        GameState->X = CENTER_X;
+        GameState->Y = 1;
+        GameState->Rotation = 0;
+        GameState->DropCounter = 0;
+        GameState->DropSpeed = 10;
+        GameState->Piece = GetRandomTetromino();
+        GameState->NextPiece = GetRandomTetromino();
+        GameState->Lines = PushArray(&MemoryArena, LINE_COUNT, s32);
+        GameState->NextLine = 0;
+        GameState->Board = PushArray(&MemoryArena, TILES_Y*TILES_X, board_type);
+        GameState->GameMode = GameMode_Play;
+        for(s32 Y = 0; Y < TILES_Y; ++Y)
+        {
+            for(s32 X = 0; X < TILES_X; ++X)
+            {
+                if(X == 0 || X == TILES_X - 1 || Y == TILES_Y - 1)
+                {
+                    GameState->Board[Y * TILES_X + X] = BoardType_Wall;
+                }
+                else
+                {
+                    GameState->Board[Y * TILES_X + X] = BoardType_Clear;
+                }
+            }
+        }
+        
+    }
+    
+    
+    switch(GameState->GameMode)
+    {
+        case GameMode_Menu:
+        {
+            // TODO(kstandbridge): Game menu
+            Memory->IsInitialized = false;
+            
+        } break;
+        
+        case GameMode_GameOver:
+        {
+            UpdateGameOver(GameState, Input);
+            
+            RenderGame(GameState, Buffer);
+            
+            DrawRectangle(Buffer, V2(0, 0), V2(31.7f, 6.0f), 0, 0, 0);
+            DrawString(Buffer, "GAME OVER", V2(0, 2), 0.4, TextAlign_Center, 1, 1, 1);
+            
+        } break;
+        
+        case GameMode_Play:
+        {
+            UpdateGame(GameState, Input);
+            
+            RenderGame(GameState, Buffer);
+            
+        } break;
+    }
+    
 }

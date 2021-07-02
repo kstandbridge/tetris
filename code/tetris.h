@@ -47,8 +47,16 @@ enum board_type
     BoardType_Line,
 };
 
+enum game_mode
+{
+    GameMode_Play,
+    GameMode_Menu,
+    GameMode_GameOver
+};
+
 struct game_state
 {
+    
     s32 Score;
     s32 TotalLines;
     s32 X;
@@ -63,6 +71,8 @@ struct game_state
     s32 NextLine;
     
     board_type *Board;
+    
+    game_mode GameMode;
     
 };
 
