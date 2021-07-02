@@ -239,6 +239,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             }
             
             // NOTE(kstandbridge): Check for line
+            GameState->NextLine = 0;
             for(s32 Y = 0; Y < 4; ++Y)
             {
                 if(GameState->Y + Y < TILES_Y - 1)
@@ -267,7 +268,6 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             GameState->Rotation = 0;
             GameState->Piece = RandomRange_s32(0, ArrayCount(Tetrominoes) - 1);
             GameState->DropCounter = DROP_TIME;
-            GameState->NextLine = 0;
             // NOTE(kstandbridge): Newly placed piece is invalid move thus game over
             if(!ValidMove(GameState->Board, GameState->Piece, GameState->Rotation, GameState->X, GameState->Y))
             {
