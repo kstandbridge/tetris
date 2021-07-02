@@ -23,7 +23,7 @@ This is just an educational project I started to learn game programming. Takes i
 - [x] feat: clear detected lines and drop whole stack
 - [x] feat: randomize next tetromino
 - [x] feat: create and display scoring system
-- [ ] feat: speed up game based on pieces spawned
+- [x] feat: speed up game based on pieces spawned
 - [ ] feat: preview next tetromino
 - [ ] feat: tetromino colors change based on level
 - [ ] feat: add game over screen

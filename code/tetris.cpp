@@ -93,17 +93,24 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                     Memory->PermanentStorageSize - sizeof(game_state),
                     (u8 *)Memory->PermanentStorage + sizeof(game_state));
     
+    if(!GlobalRandomState)
+    {
+        GlobalRandomState = (u32)Memory->GetTimeStamp();
+    }
+    
     //////////////////////
     // NOTE(kstandbridge): Initalize game
     {    
         if (!Memory->IsInitialized)
         {
             Memory->IsInitialized = true;
-            GlobalRandomState = (u32)Memory->GetTimeStamp();
             GameState->Score = 0;
-            GameState->X = TILES_X/2;
+            GameState->TotalLines = 0;
+            GameState->X = CENTER_X;
             GameState->Y = 1;
             GameState->Rotation = 0;
+            GameState->DropCounter = 0;
+            GameState->DropSpeed = 10;
             GameState->Piece = 0;
             GameState->Lines = PushArray(&MemoryArena, LINE_COUNT, s32);
             GameState->NextLine = 0;
@@ -150,11 +157,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             {
                 // NOTE(kstandbridge): Use digital movement tuning
                 
-                if(Controller->MoveUp.EndedDown && Controller->MoveUp.HalfTransitionCount == 1)
-                {
-                    MoveY = -1;
-                }
-                if(Controller->MoveDown.EndedDown && Controller->MoveDown.HalfTransitionCount == 1)
+                if(Controller->MoveDown.EndedDown)
                 {
                     MoveY = +1;
                 }
@@ -186,8 +189,8 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
     {
         // TODO(kstandbridge): Invalid move sound
     }
-    GameState->DropCounter++;
-    if(GameState->DropCounter > DROP_TIME)
+    GameState->DropCounter -= GameState->DropSpeed * Input->dtForFrame;
+    if(GameState->DropCounter < 0)
     {
         // NOTE(kstandbridge): Clear any lines
         s32 LineScore = 0;
@@ -212,8 +215,9 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
         {
             GameState->Score += (1 << LineScore) * 100;
         }
-        
-        GameState->DropCounter = 0;
+        GameState->TotalLines += LineScore;
+        GameState->DropSpeed += LineScore;
+        GameState->DropCounter = DROP_TIME;
         if(ValidMove(GameState->Board, GameState->Piece, GameState->Rotation, GameState->X, GameState->Y + 1))
         {
             GameState->Y++;
@@ -251,18 +255,18 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
                         {
                             GameState->Board[(GameState->Y + Y) * TILES_X + X] = BoardType_Line;
                         }
-                        GameState->DropCounter = -DROP_TIME;
+                        GameState->DropCounter = 0;
                         GameState->Lines[GameState->NextLine++] = GameState->Y + Y;
                         if(GameState->NextLine >= LINE_COUNT) GameState->NextLine = 0;
                     }
                 }
             }
             
-            GameState->X = TILES_X/2;
+            GameState->X = CENTER_X;
             GameState->Y = 1;
             GameState->Rotation = 0;
             GameState->Piece = RandomRange_s32(0, ArrayCount(Tetrominoes) - 1);
-            
+            GameState->DropCounter = DROP_TIME;
             // NOTE(kstandbridge): Newly placed piece is invalid move thus game over
             if(!ValidMove(GameState->Board, GameState->Piece, GameState->Rotation, GameState->X, GameState->Y))
             {
@@ -361,10 +365,25 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
         
         // NOTE(kstandbridge): Draw HUD
         {
+            char NumberBuffer[16];
             P = V2(40, -30);
             DrawString(Buffer, "SCORE", P, 0.4, TextAlign_Left, 1, 1, 1);
             P.Y += 10.0f;
-            DrawNumber(Buffer, GameState->Score, P, 0.4, TextAlign_Left, 1, 1, 1);
+            _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "%06d", GameState->Score);
+            DrawString(Buffer, NumberBuffer, P, 0.4, TextAlign_Left, 1, 1, 1);
+            
+            P.Y += 10.0f;
+            DrawString(Buffer, "LINES", P, 0.4, TextAlign_Left, 1, 1, 1);
+            P.Y += 10.0f;
+            _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "%03d", GameState->TotalLines);
+            DrawString(Buffer, NumberBuffer, P, 0.4, TextAlign_Left, 1, 1, 1);
+            
+            P = V2(-80, -40);
+            _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "COUNTER %02.f", GameState->DropCounter);
+            DrawString(Buffer, NumberBuffer, P, 0.2, TextAlign_Left, 1, 1, 1);
+            P.Y += 5.0f;
+            _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "SPEED %d", GameState->DropSpeed);
+            DrawString(Buffer, NumberBuffer, P, 0.2, TextAlign_Left, 1, 1, 1);
             
         }
     }

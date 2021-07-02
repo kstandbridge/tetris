@@ -157,11 +157,3 @@ DrawString(game_offscreen_buffer *Buffer, char *String, v2 P, r32 Size, text_ali
 
 // TODO(kstandbridge): Remove stdio
 #include <stdio.h>
-
-internal void
-DrawNumber(game_offscreen_buffer *Buffer, u32 Number, v2 P, r32 Size, text_align TextAlign, r32 R, r32 G, r32 B) 
-{
-    char NumberBuffer[16];
-    _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "%06d", Number);
-    DrawString(Buffer, NumberBuffer, P, Size, TextAlign, R, G, B);
-}
