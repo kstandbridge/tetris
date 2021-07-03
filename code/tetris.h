@@ -44,6 +44,7 @@ enum board_type
     BoardType_Clear,
     BoardType_Wall,
     BoardType_Locked,
+    BoardType_TypeB,
     BoardType_Line,
 };
 
@@ -73,12 +74,28 @@ struct game_level_type_a_state
     s32 DropSpeed;
 };
 
+struct game_level_type_b_state
+{
+    s32 Score;
+    s32 TotalLines;
+    s32 X;
+    s32 Y;
+    s32 Piece;
+    s32 NextPiece;
+    s32 Rotation;
+    r32 DropCounter;
+    s32 DropSpeed;
+    
+    b32 Winner;
+};
+
 struct game_level_state
 {
     union
     {
         game_level_menu_state Menu;
         game_level_type_a_state TypeA;
+        game_level_type_b_state TypeB;
     };
 };
 

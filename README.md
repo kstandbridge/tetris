@@ -31,10 +31,19 @@ This is just an educational project I started to learn game programming. Takes i
 - [x] feat: add game over screen
 - [x] feat: title screen
 - [x] feat: title screen game mode selection
-- [ ] feat: tetromino colors change based on level
-- [ ] feat: add game mode where have to clear all partial blocks 
-- [ ] feat: add game win screen
+- [x] feat: add game mode where have to clear all partial blocks 
+- [x] feat: add game win screen
+- [ ] feat: continuous movement when holding left/right
+- [ ] feat: TypeB to have X amount of blocks
+- [ ] feat: Difficulty setting for TypeB so more blocks added
+- [ ] feat: Speed Setting for TypeA
+- [ ] feat: Speed Setting for TypeB
 - [ ] feat: add game mode where valid lines are not cleared
+- [ ] feat: particle effect when block lands
+- [ ] feat: particle effect when line clears
+- [ ] feat: game over transition
+- [ ] feat: level transition
+- [ ] feat: tetromino colors change based on speed
 - [ ] feat: add sound effects on tetromino move and rotate
 - [ ] feat: add sound effect on tetromino land
 - [ ] feat: add sound effect on tetromino fast drop

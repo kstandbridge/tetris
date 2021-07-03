@@ -157,6 +157,46 @@ ChangeGameLevel(game_state *GameState, game_level GameLevel)
             GameState->GameOver = false;
         } break;
         
+        case GameLevel_TypeB:
+        {
+            game_level_type_b_state *LevelState = &GameState->LevelState.TypeB;
+            GameState->NextLine = 0;
+            
+            LevelState->Score = 0;
+            LevelState->TotalLines = 0;
+            LevelState->X = CENTER_X;
+            LevelState->Y = 1;
+            LevelState->Rotation = 0;
+            LevelState->DropCounter = 0;
+            LevelState->DropSpeed = 10;
+            LevelState->Piece = GetRandomTetromino();
+            LevelState->NextPiece = GetRandomTetromino();
+            LevelState->Winner = false;
+            
+            for(s32 Y = 0; Y < TILES_Y; ++Y)
+            {
+                for(s32 X = 0; X < TILES_X; ++X)
+                {
+                    if(X == 0 || X == TILES_X - 1 || Y == TILES_Y - 1)
+                    {
+                        GameState->Board[Y * TILES_X + X] = BoardType_Wall;
+                    }
+                    else
+                    {
+                        if(Y > 10 && RandomChance_b32(12))
+                        {
+                            GameState->Board[Y * TILES_X + X] = BoardType_TypeB;
+                        }
+                        else
+                        {
+                            GameState->Board[Y * TILES_X + X] = BoardType_Clear;
+                        }
+                    }
+                }
+            }
+            GameState->GameOver = false;
+        } break;
+        
         InvalidDefaultCase;
     }
     
@@ -335,6 +375,26 @@ UpdateGame(game_state *GameState, game_input *Input)
             LevelState->Score += (1 << LineScore) * 100;
         }
         LevelState->TotalLines += LineScore;
+        
+        
+        if(GameState->Level == GameLevel_TypeB)
+        {
+            b32 BlocksRemaining = false;
+            
+            for(s32 Index = 0; Index < TILES_Y * TILES_X; ++Index)
+            {
+                if(GameState->Board[Index] == BoardType_TypeB)
+                {
+                    BlocksRemaining = true;
+                }
+            }
+            
+            if(!BlocksRemaining)
+            {
+                GameState->LevelState.TypeB.Winner = true;
+            }
+        }
+        
         LevelState->DropSpeed += LineScore;
         LevelState->DropCounter = DROP_TIME;
         if(ValidMove(GameState->Board, LevelState->Piece, LevelState->Rotation, LevelState->X, LevelState->Y + 1))
@@ -366,7 +426,7 @@ UpdateGame(game_state *GameState, game_input *Input)
                     b32 Line = true;
                     for(s32 X = 1; X < TILES_X - 1; ++X)
                     {
-                        Line &= (GameState->Board[(LevelState->Y + Y) * TILES_X + X]) != 0;
+                        Line &= (GameState->Board[(LevelState->Y + Y) * TILES_X + X]) != BoardType_Clear;
                     }
                     
                     if(Line)
@@ -440,6 +500,11 @@ RenderGame(game_state *GameState, game_offscreen_buffer *Buffer)
                     case BoardType_Locked:
                     {
                         DrawRectangle(Buffer, P, TileHalfSize, Color(0.5f, 0.5f, 0.5f));
+                    } break;
+                    
+                    case BoardType_TypeB:
+                    {
+                        DrawRectangle(Buffer, P, TileHalfSize, Color(0.3f, 0.3f, 0.3f));
                     } break;
                     
                     case BoardType_Line:
@@ -536,6 +601,7 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
         {
             UpdateGameMenu(GameState, Input, Buffer);
             
+            
         } break;
         
         case GameLevel_TypeA:
@@ -557,6 +623,34 @@ GameUpdateAndRender(thread_context *Thread, game_memory *Memory, game_input *Inp
             }
             
         } break;
+        
+        case GameLevel_TypeB:
+        {
+            if(GameState->LevelState.TypeB.Winner)
+            {
+                UpdateGameOver(GameState, Input);
+                
+                DrawRectangle(Buffer, V2(0, 0), V2(31.7f, 6.0f), Color(0, 0, 0));
+                DrawString(Buffer, "WINNER", V2(0, 2), 0.4, TextAlign_Center, Color(1, 1, 1));
+            }
+            else if(GameState->GameOver)
+            {
+                UpdateGameOver(GameState, Input);
+                
+                RenderGame(GameState, Buffer);
+                
+                DrawRectangle(Buffer, V2(0, 0), V2(31.7f, 6.0f), Color(0, 0, 0));
+                DrawString(Buffer, "GAME OVER", V2(0, 2), 0.4, TextAlign_Center, Color(1, 1, 1));
+            }
+            else
+            {
+                UpdateGame(GameState, Input);
+                
+                RenderGame(GameState, Buffer);
+            }
+            
+        } break;
+        
     }
     
 }
