@@ -1,7 +1,26 @@
+struct color
+{
+    r32 Red;
+    r32 Green;
+    r32 Blue;
+};
+
+inline color
+Color(r32 Red, r32 Green, r32 Blue)
+{
+    color Result;
+    
+    Result.Red = Red;
+    Result.Green = Green;
+    Result.Blue = Blue;
+    
+    return Result;
+}
+
 global_variable r32 GlobalScale = 0.01f; // NOTE(kstandbridge): Hard coded
 
 internal void
-DrawRectangle(game_offscreen_buffer *Buffer, v2 P, v2 HalfSize, r32 R, r32 G, r32 B)
+DrawRectangle(game_offscreen_buffer *Buffer, v2 P, v2 HalfSize, color Color)
 {
     HalfSize *= (Buffer->Width/1.77f)*GlobalScale;
     P *= (Buffer->Width/1.77f)*GlobalScale;
@@ -14,9 +33,9 @@ DrawRectangle(game_offscreen_buffer *Buffer, v2 P, v2 HalfSize, r32 R, r32 G, r3
     s32 MaxY = Clamp(MinY, RoundReal32ToInt32(P.Y + HalfSize.Y), Buffer->Height);
     
     // BIT PATTERN: 0x AA RR GG BB
-    u32 Color = ((RoundReal32ToUInt32(R * 255.0f) << 16) |
-                 (RoundReal32ToUInt32(G * 255.0f) << 8) |
-                 (RoundReal32ToUInt32(B * 255.0f) << 0));
+    u32 ColorValue = ((RoundReal32ToUInt32(Color.Red * 255.0f) << 16) |
+                      (RoundReal32ToUInt32(Color.Green * 255.0f) << 8) |
+                      (RoundReal32ToUInt32(Color.Blue * 255.0f) << 0));
     
     u8 *Row = ((u8 *)Buffer->Memory +
                MinX * Buffer->BytesPerPixel +
@@ -27,7 +46,7 @@ DrawRectangle(game_offscreen_buffer *Buffer, v2 P, v2 HalfSize, r32 R, r32 G, r3
         u32 *Pixel = (u32 *)Row;
         for (s32 X = MinX; X < MaxX; ++X)
         {
-            *Pixel++ = Color;
+            *Pixel++ = ColorValue;
         }
         
         Row += Buffer->Pitch;
@@ -101,7 +120,7 @@ GetWordAlignOffset(s32 text_align, char *Word, r32 Size)
 }
 
 internal void
-DrawString(game_offscreen_buffer *Buffer, char *String, v2 P, r32 Size, text_align TextAlign, r32 R, r32 G, r32 B) 
+DrawString(game_offscreen_buffer *Buffer, char *String, v2 P, r32 Size, text_align TextAlign, color Color) 
 {
     r32 Firstx = P.X;
     P.X += GetWordAlignOffset(TextAlign, String, Size);
@@ -140,7 +159,7 @@ DrawString(game_offscreen_buffer *Buffer, char *String, v2 P, r32 Size, text_ali
             {
                 if (*At++ != ' ') 
                 {
-                    DrawRectangle(Buffer, P, HalfSize, R, G, B);
+                    DrawRectangle(Buffer, P, HalfSize, Color);
                 }
                 P.X += BlockOffsetX;
             }

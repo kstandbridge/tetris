@@ -47,16 +47,21 @@ enum board_type
     BoardType_Line,
 };
 
-enum game_mode
+enum game_level
 {
-    GameMode_Play,
-    GameMode_Menu,
-    GameMode_GameOver
+    GameLevel_Menu,
+    GameLevel_TypeA,
+    GameLevel_TypeB,
 };
 
-struct game_state
+struct game_level_menu_state
 {
-    
+    b32 TypeA;
+    b32 TypeB;
+};
+
+struct game_level_type_a_state
+{
     s32 Score;
     s32 TotalLines;
     s32 X;
@@ -66,14 +71,27 @@ struct game_state
     s32 Rotation;
     r32 DropCounter;
     s32 DropSpeed;
-    
+};
+
+struct game_level_state
+{
+    union
+    {
+        game_level_menu_state Menu;
+        game_level_type_a_state TypeA;
+    };
+};
+
+struct game_state
+{
+    board_type *Board;
     s32 *Lines;
     s32 NextLine;
     
-    board_type *Board;
+    b32 GameOver;
     
-    game_mode GameMode;
-    
+    game_level Level;
+    game_level_state LevelState;
 };
 
 global_variable char *Tetrominoes[] =
