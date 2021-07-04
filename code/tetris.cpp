@@ -295,6 +295,18 @@ UpdateGame(game_state *GameState, game_input *Input)
         {
             // TODO(kstandbridge): Analog movement
             //ddP = v2{ Controller->StickAverageX, -Controller->StickAverageY };
+            if(Controller->StickAverageX > 0)
+            {
+                MoveX = 1;
+            }
+            else if(Controller->StickAverageX < 0) 
+            {
+                MoveX = -1;
+            }
+            if(Controller->StickAverageY < 0)
+            {
+                MoveY = 1;
+            }
         }
         else
         {
@@ -304,11 +316,11 @@ UpdateGame(game_state *GameState, game_input *Input)
             {
                 MoveY = 1;
             }
-            if(Controller->MoveLeft.EndedDown && Controller->MoveLeft.HalfTransitionCount == 1)
+            if(Controller->MoveLeft.EndedDown)
             {
                 MoveX = -1;
             }
-            if(Controller->MoveRight.EndedDown && Controller->MoveRight.HalfTransitionCount == 1)
+            if(Controller->MoveRight.EndedDown)
             {
                 MoveX = 1;
             }
@@ -319,33 +331,50 @@ UpdateGame(game_state *GameState, game_input *Input)
             Rotation = 1;
         }
         
+        if(Controller->ActionLeft.EndedDown && Controller->ActionLeft.HalfTransitionCount == 1)
+        {
+            if(LevelState->Rotation == 0)
+            {
+                Rotation = 3;
+            }
+            else
+            {
+                Rotation = -1;
+            }
+        }
+        
     }
     
-    if(ValidMove(GameState->Board, LevelState->Piece, LevelState->Rotation + Rotation, LevelState->X + MoveX, LevelState->Y))
+    if(Rotation != 0 || (MoveX != 0 && GameState->MoveInterval < 0.0f))
     {
-        LevelState->Rotation += Rotation;
-        LevelState->X += MoveX;
-    }
-    else
-    {
-        if(Rotation)
+        GameState->MoveInterval = 0.15f;
+        if(ValidMove(GameState->Board, LevelState->Piece, LevelState->Rotation + Rotation, LevelState->X + MoveX, LevelState->Y))
         {
-            // NOTE(kstandbridge): Move 2 spaces automatically on rotates next to wall/object
-            for(MoveX = -2; MoveX < 3; ++MoveX)
-            {
-                if(ValidMove(GameState->Board, LevelState->Piece, LevelState->Rotation + Rotation, LevelState->X + MoveX, LevelState->Y))
-                {
-                    LevelState->Rotation += Rotation;
-                    LevelState->X += MoveX;
-                    break;
-                }
-            }
+            LevelState->Rotation += Rotation;
+            LevelState->X += MoveX;
         }
         else
         {
-            // TODO(kstandbridge): Invalid move sound
+            if(Rotation)
+            {
+                // NOTE(kstandbridge): Move 2 spaces automatically on rotates next to wall/object
+                for(MoveX = -2; MoveX < 3; ++MoveX)
+                {
+                    if(ValidMove(GameState->Board, LevelState->Piece, LevelState->Rotation + Rotation, LevelState->X + MoveX, LevelState->Y))
+                    {
+                        LevelState->Rotation += Rotation;
+                        LevelState->X += MoveX;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                // TODO(kstandbridge): Invalid move sound
+            }
         }
     }
+    GameState->MoveInterval -= Input->dtForFrame;
     
     LevelState->DropCounter -= MoveY*10;
     LevelState->DropCounter -= LevelState->DropSpeed * Input->dtForFrame;
@@ -535,7 +564,7 @@ RenderGame(game_state *GameState, game_offscreen_buffer *Buffer)
     // NOTE(kstandbridge): Draw HUD
     {
         DrawRectangle(Buffer, V2(56, -17), V2(20, 20), Color(0, 0, 0));
-        char NumberBuffer[16];
+        char NumberBuffer[256];
         P = V2(40, -30);
         DrawString(Buffer, "SCORE", P, 0.4, TextAlign_Left, Color(1, 1, 1));
         P.Y += 10.0f;
@@ -558,7 +587,12 @@ RenderGame(game_state *GameState, game_offscreen_buffer *Buffer)
         P.Y += 5.0f;
         _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "SPEED %d", LevelState->DropSpeed);
         DrawString(Buffer, NumberBuffer, P, 0.2, TextAlign_Left, Color(1, 1, 1));
-        
+        if(GameState->MoveInterval > 0)
+        {
+            P.Y += 5.0f;
+            _snprintf_s(NumberBuffer, sizeof(NumberBuffer), "WAIT %.2f", GameState->MoveInterval);
+            DrawString(Buffer, NumberBuffer, P, 0.2, TextAlign_Left, Color(1, 1, 1));
+        }
         
     }
 }

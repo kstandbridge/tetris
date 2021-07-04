@@ -105,6 +105,9 @@ struct game_state
     s32 *Lines;
     s32 NextLine;
     
+    r32 MoveInterval;
+    s32 LastMoveX;
+    
     b32 GameOver;
     
     game_level Level;

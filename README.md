@@ -33,7 +33,7 @@ This is just an educational project I started to learn game programming. Takes i
 - [x] feat: title screen game mode selection
 - [x] feat: add game mode where have to clear all partial blocks 
 - [x] feat: add game win screen
-- [ ] feat: continuous movement when holding left/right
+- [x] feat: continuous movement when holding left/right
 - [ ] feat: TypeB to have X amount of blocks
 - [ ] feat: Difficulty setting for TypeB so more blocks added
 - [ ] feat: Speed Setting for TypeA
