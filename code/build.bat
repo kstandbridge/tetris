@@ -10,23 +10,24 @@ IF NOT DEFINED DevEnvDir (
 set CommonCompilerFlags=-MTd -nologo -fp:fast -Gm- -GR- -EHa- -Od -Oi -WX -W4 -wd4201 -wd4100 -wd4189 -wd4505 -DTETRIS_INTERNAL=1 -DTETRIS_SLOW=1 -FC -Z7 
 set CommonLinkerFlags= -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib
 
-IF NOT EXIST build mkdir build
-pushd build
+IF NOT EXIST ..\data mkdir ..\data
+IF NOT EXIST ..\..\build mkdir ..\..\build
+pushd ..\..\build
 
 del *.pdb > NUL 2> NUL
 echo WAITING FOR PDB > lock.tmp
 
 :: tetris_console.exe
-:: cl %CommonCompilerFlags% /EHsc ..\code\tetris_console.cpp /link %CommonLinkerFlags% User32.lib
+:: cl %CommonCompilerFlags% /EHsc ..\tetris\code\tetris_console.cpp /link %CommonLinkerFlags% User32.lib
 
 :: tetris.dll
-cl %CommonCompilerFlags% ..\code\tetris.cpp /LD /link -incremental:no -opt:ref -PDB:tetris_%random%.pdb -EXPORT:GameGetSoundSamples -EXPORT:GameUpdateAndRender
+cl %CommonCompilerFlags% ..\tetris\code\tetris.cpp /LD /link -incremental:no -opt:ref -PDB:tetris_%random%.pdb -EXPORT:GameGetSoundSamples -EXPORT:GameUpdateAndRender
 if !errorlevel! neq 0 goto CLEANUPERROR
 
 :: Skip trying to build tetris.exe if currently running
 FOR /F %%x IN ('tasklist /NH /FI "IMAGENAME eq win32_tetris.exe"') DO IF %%x == win32_tetris.exe goto FOUND
 
-cl %CommonCompilerFlags% ..\code\win32_tetris.cpp /link %CommonLinkerFlags%
+cl %CommonCompilerFlags% ..\tetris\code\win32_tetris.cpp /link %CommonLinkerFlags%
 if !errorlevel! neq 0 goto CLEANUPERROR
 
 :FOUND
